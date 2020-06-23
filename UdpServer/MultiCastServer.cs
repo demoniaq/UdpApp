@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -43,16 +44,17 @@ namespace UdpServer
         {
             Random rnd = new Random();
 
-            while(true)
+            while(true)            
             {
                 byte[] buffer = BitConverter.GetBytes(rnd.Next(rangeStart, rangeEnd));
+
                 try
                 {
                     socket.Send(buffer, buffer.Length, SocketFlags.None);
                 }
                 catch (Exception)
                 {
-                }                
+                } 
             }
         }
 
@@ -61,6 +63,7 @@ namespace UdpServer
         /// </summary>
         public void Stop()
         {
+            socket.Shutdown(SocketShutdown.Send);
             socket.Close();
         }
     }

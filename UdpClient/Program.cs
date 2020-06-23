@@ -2,6 +2,8 @@
 using System;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
+using System.Threading;
 
 namespace UdpClient
 {
@@ -68,9 +70,24 @@ namespace UdpClient
             }
 
 
+            MuliCastClient muliCastClient = new MuliCastClient(multiCastAddress, port, delayMilliSeconds);
 
-            Console.WriteLine("Клиент остановлен");
-            Console.ReadKey();
+
+            Thread listenThread = new Thread(new ThreadStart(muliCastClient.StartListen));
+            Thread calcThread = new Thread(new ThreadStart(muliCastClient.CalcData));
+
+            listenThread.Start();
+            calcThread.Start();
+
+            Console.WriteLine("Нажмите Enter для отображения расчетных значений.");
+
+            while(true)
+            {
+                if(Console.ReadKey(true).Key == ConsoleKey.Enter)
+                {
+                    Console.WriteLine($"{DateTime.Now} Average = {muliCastClient.Average}");
+                }                
+            }
         }
     }
 }

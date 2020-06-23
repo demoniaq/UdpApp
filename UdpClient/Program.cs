@@ -69,23 +69,18 @@ namespace UdpClient
                 return;
             }
 
-
             MuliCastClient muliCastClient = new MuliCastClient(multiCastAddress, port, delayMilliSeconds);
-
-
             Thread listenThread = new Thread(new ThreadStart(muliCastClient.StartListen));
             Thread calcThread = new Thread(new ThreadStart(muliCastClient.CalcData));
-
             listenThread.Start();
             calcThread.Start();
 
             Console.WriteLine("Нажмите Enter для отображения расчетных значений.");
-
             while(true)
             {
                 if(Console.ReadKey(true).Key == ConsoleKey.Enter)
                 {
-                    Console.WriteLine($"{DateTime.Now} Average = {muliCastClient.Average}");
+                    Console.WriteLine($"{DateTime.Now} Average = {muliCastClient.Average:f3}");
                 }                
             }
         }

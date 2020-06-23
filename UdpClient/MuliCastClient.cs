@@ -16,29 +16,30 @@ namespace UdpClient
 
         private readonly Socket socket;
         private readonly int delayMilliSeconds;
-        private readonly Queue<int> queue;
 
-        const int currentBufferSize = 1000000;       // max buffer      4 294 967 298
-        private List<int> currentBuffer;             // max             2 147 483 647
-        private List<long> totalBuffer;              // max 9 223 372 036 854 775 807
+        private readonly Queue<double> queue;
+
+        const int currentBufferSize = 1000000;       
+        private List<double> currentBuffer;             
+        private List<double> totalBuffer;              
         
         /// <summary>
         /// Среднее значение всех полученных данных
         /// </summary>
-        public int Average
+        public double Average
         {
             get
             {
-                int retVal = 0;
+                double retVal = 0;
 
                 mutex2.WaitOne();
                 if (totalBuffer.Count > 0)
                 {
-                    retVal = (int)(totalBuffer.Average() / currentBufferSize);
+                    retVal = totalBuffer.Average() / currentBufferSize;
                 }
                 else if (currentBuffer.Count > 0)
                 {
-                    retVal = (int)currentBuffer.Average();
+                    retVal = currentBuffer.Average();
                 }
                 mutex2.ReleaseMutex();
 
@@ -54,37 +55,42 @@ namespace UdpClient
             socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership, new MulticastOption(multiCastAddress, IPAddress.Any));
 
             this.delayMilliSeconds = delayMilliSeconds;
-            queue = new Queue<int>();
+            queue = new Queue<double>();
         }
 
         public void StartListen()
         {
-            byte[] buffer = new byte[10];
+            byte[] buffer = new byte[8];
 
             while (true)            
             {
+                Thread.Sleep(delayMilliSeconds);
                 socket.Receive(buffer);
                 mutex1.WaitOne();
-                queue.Enqueue(BitConverter.ToInt32(buffer));
+                queue.Enqueue(BitConverter.ToDouble(buffer));
                 mutex1.ReleaseMutex();
             }
         }
 
         public void CalcData()
         {
-            currentBuffer = new List<int>();
-            totalBuffer = new List<long>();
+            currentBuffer = new List<double>();
+            totalBuffer = new List<double>();
             
             while (true)
             {
                 mutex1.WaitOne();
-                if (queue.TryDequeue(out int val))
+                if (queue.TryDequeue(out double val))
                 {
                     mutex2.WaitOne();
                     currentBuffer.Add(val);
                     if (currentBuffer.Count == currentBufferSize)
                     {
-                        totalBuffer.Add(currentBuffer.Sum(x => (long)x));
+                        // Вычисление стандартного отклонения по буфферу
+                        double avg = currentBuffer.Average();
+                        List<double> bufMinusAvg = currentBuffer.Select(x => x - avg).ToList();
+
+                        totalBuffer.Add(currentBuffer.Sum());
                         currentBuffer.Clear();
                     }
                     mutex2.ReleaseMutex();

@@ -14,16 +14,16 @@ namespace UdpServer
     {
         private readonly Socket socket;
         private readonly IPEndPoint remoteEp;
-        private readonly int rangeStart;
-        private readonly int rangeEnd;
+        private readonly double rangeStart;
+        private readonly double rangeEnd;
 
-        public MultiCastServer(int rangeStart, int rangeEnd, IPAddress multiCastAddress, int port)
+        public MultiCastServer(double rangeStart, double rangeEnd, IPAddress multiCastAddress, int port, byte ttl)
         {
             try
             {
                 socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership, new MulticastOption(multiCastAddress));
-                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, 10);
+                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, ttl); 
 
                 remoteEp = new IPEndPoint(multiCastAddress, port);
                 socket.Connect(remoteEp);
@@ -46,7 +46,7 @@ namespace UdpServer
 
             while(true)            
             {
-                byte[] buffer = BitConverter.GetBytes(rnd.Next(rangeStart, rangeEnd));
+                byte[] buffer = BitConverter.GetBytes(rangeStart + (rnd.NextDouble() * (rangeEnd - rangeStart)));
 
                 try
                 {
@@ -54,7 +54,7 @@ namespace UdpServer
                 }
                 catch (Exception)
                 {
-                } 
+                }
             }
         }
 

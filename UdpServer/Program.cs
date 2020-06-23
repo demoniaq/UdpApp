@@ -15,6 +15,7 @@ namespace UdpServer
             IPAddress multiCastAddress;
             MultiCastServer multiCastServer;
             int port;
+            byte ttl;
 
             try
             {
@@ -31,9 +32,10 @@ namespace UdpServer
             string rangeEndStr = config.GetSection("RangeEnd").Value;
             string multiCastGroup = config.GetSection("MultiCastGroup").Value;
             string portStr = config.GetSection("Port").Value;
+            string ttlStr = config.GetSection("TTL").Value;
 
-            int rangeStart = Convert.ToInt32(rangeStartStr);
-            int rangeEnd = Convert.ToInt32(rangeEndStr);
+            double rangeStart = Convert.ToDouble(rangeStartStr);
+            double rangeEnd = Convert.ToDouble(rangeEndStr);
             if (rangeStart >= rangeEnd)
             {
                 Console.WriteLine($"Некорректный диапазон в настройках: {rangeStartStr} - {rangeEndStr}");
@@ -67,7 +69,19 @@ namespace UdpServer
 
             try
             {
-                multiCastServer = new MultiCastServer(rangeStart, rangeEnd, multiCastAddress, port);
+                ttl = Convert.ToByte(ttlStr);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.WriteLine($"Некорректное значение TTL в настройках = '{ttlStr}', ожидалось значение 0-255");
+                Console.ReadKey();
+                return;
+            }
+
+            try
+            {
+                multiCastServer = new MultiCastServer(rangeStart, rangeEnd, multiCastAddress, port, ttl);
                 _ = Task.Run(() => multiCastServer.Start());
             }
             catch (Exception ex)

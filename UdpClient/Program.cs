@@ -75,13 +75,14 @@ namespace UdpClient
             listenThread.Start();
             calcThread.Start();
 
+
             Console.WriteLine("Нажмите Enter для отображения расчетных значений.");
-            while(true)
+            while (true)
             {
-                if(Console.ReadKey(true).Key == ConsoleKey.Enter)
+                if (Console.ReadKey(true).Key == ConsoleKey.Enter)
                 {
-                    Console.WriteLine($"{DateTime.Now} Average = {muliCastClient.Average:f3}");
-                }                
+                    Console.WriteLine($"Среднее = {muliCastClient.Average:f3}, СтандОтклонение = {muliCastClient.StandardDeviation:f3}, Мода = [], Медиана = []");
+                }
             }
         }
     }

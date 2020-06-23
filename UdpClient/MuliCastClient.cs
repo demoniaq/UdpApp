@@ -11,18 +11,25 @@ namespace UdpClient
 {
     internal class MuliCastClient
     {
-        static readonly Mutex mutex1 = new Mutex();
-        static readonly Mutex mutex2 = new Mutex();
+        static readonly Mutex queueMutex = new Mutex();
+        static readonly Mutex totalDataMutex = new Mutex();
 
         private readonly Socket socket;
         private readonly int delayMilliSeconds;
 
         private readonly Queue<double> queue;
 
-        const int currentBufferSize = 1000000;       
-        private List<double> currentBuffer;             
-        private List<double> totalBuffer;              
-        
+        public struct TolalData
+        {
+            public double Count;
+            public double Sum;
+            public double SquaredDeviation;  // Квадрат отклонения от среднего значения
+        }
+
+        public TolalData totalData;
+
+
+
         /// <summary>
         /// Среднее значение всех полученных данных
         /// </summary>
@@ -30,21 +37,27 @@ namespace UdpClient
         {
             get
             {
-                double retVal = 0;
-
-                mutex2.WaitOne();
-                if (totalBuffer.Count > 0)
-                {
-                    retVal = totalBuffer.Average() / currentBufferSize;
-                }
-                else if (currentBuffer.Count > 0)
-                {
-                    retVal = currentBuffer.Average();
-                }
-                mutex2.ReleaseMutex();
+                totalDataMutex.WaitOne();
+                double retVal = totalData.Count != 0 ? totalData.Sum / totalData.Count : 0;
+                totalDataMutex.ReleaseMutex();
 
                 return retVal;
             }            
+        }
+
+        /// <summary>
+        /// Стандартное отклонение
+        /// </summary>
+        public double StandardDeviation
+        {
+            get
+            {
+                totalDataMutex.WaitOne();
+                double retVal = totalData.Count - 1 != 0 && totalData.Count != 0 ? Math.Sqrt(totalData.SquaredDeviation / (totalData.Count - 1)) : 0;
+                totalDataMutex.ReleaseMutex();
+
+                return retVal;
+            }
         }
 
         public MuliCastClient(IPAddress multiCastAddress, int port, int delayMilliSeconds)
@@ -63,39 +76,39 @@ namespace UdpClient
             byte[] buffer = new byte[8];
 
             while (true)            
-            {
-                Thread.Sleep(delayMilliSeconds);
-                socket.Receive(buffer);
-                mutex1.WaitOne();
+            {                
+                socket.Receive(buffer);                    
+
+                queueMutex.WaitOne();
                 queue.Enqueue(BitConverter.ToDouble(buffer));
-                mutex1.ReleaseMutex();
+                queueMutex.ReleaseMutex();
             }
         }
 
         public void CalcData()
         {
-            currentBuffer = new List<double>();
-            totalBuffer = new List<double>();
-            
+            bool doCalc;
+
+            totalData = new TolalData();
+
             while (true)
             {
-                mutex1.WaitOne();
-                if (queue.TryDequeue(out double val))
-                {
-                    mutex2.WaitOne();
-                    currentBuffer.Add(val);
-                    if (currentBuffer.Count == currentBufferSize)
-                    {
-                        // Вычисление стандартного отклонения по буфферу
-                        double avg = currentBuffer.Average();
-                        List<double> bufMinusAvg = currentBuffer.Select(x => x - avg).ToList();
+                queueMutex.WaitOne();
+                doCalc = queue.TryDequeue(out double val);
+                queueMutex.ReleaseMutex();                
 
-                        totalBuffer.Add(currentBuffer.Sum());
-                        currentBuffer.Clear();
-                    }
-                    mutex2.ReleaseMutex();
-                }
-                mutex1.ReleaseMutex();
+                if (doCalc)
+                {
+                    totalDataMutex.WaitOne();
+
+                    totalData.Sum += val;
+                    totalData.Count++;
+
+                    double squaredDeviation = Math.Pow(val - (totalData.Sum / totalData.Count), 2); // Квадрат отклонения от среднего значения
+                    totalData.SquaredDeviation += squaredDeviation;
+
+                    totalDataMutex.ReleaseMutex();
+                }                
             }            
         }
     }

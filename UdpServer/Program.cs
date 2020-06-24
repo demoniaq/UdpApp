@@ -92,7 +92,8 @@ namespace UdpServer
             }
 
             Console.WriteLine($"Диапазон чисел: {rangeStart} - {rangeEnd}");
-            Console.WriteLine($"Мультикаст группа: {multiCastAddress}");
+            Console.WriteLine($"Мультикаст группа: {multiCastAddress}: {port}");
+            Console.WriteLine($"TTL: {ttl}");
             Console.WriteLine("Запущена рассылка UDP multicast. Для остановки нажмите любую клавишу.");
             Console.ReadKey();
 

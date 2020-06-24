@@ -17,6 +17,14 @@ namespace UdpServer
         private readonly double rangeStart;
         private readonly double rangeEnd;
 
+        /// <summary>
+        /// Конструктор
+        /// </summary>
+        /// <param name="rangeStart">Начало диапазона отправляемых чисел</param>
+        /// <param name="rangeEnd">Конец диапазона отправляемых чисел</param>
+        /// <param name="multiCastAddress"></param>
+        /// <param name="port"></param>
+        /// <param name="ttl"></param>
         public MultiCastServer(double rangeStart, double rangeEnd, IPAddress multiCastAddress, int port, byte ttl)
         {
             try
@@ -46,14 +54,15 @@ namespace UdpServer
 
             while(true)            
             {
-                byte[] buffer = BitConverter.GetBytes(rangeStart + (rnd.NextDouble() * (rangeEnd - rangeStart)));
+                byte[] buffer = BitConverter.GetBytes(rangeStart + (rnd.NextDouble() * (rangeEnd - rangeStart)));                
 
                 try
                 {
                     socket.Send(buffer, buffer.Length, SocketFlags.None);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Console.WriteLine(ex.Message);
                 }
             }
         }

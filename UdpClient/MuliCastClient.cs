@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace UdpClient
 {
@@ -17,25 +18,26 @@ namespace UdpClient
         private readonly Socket socket;
         private readonly int delayMilliSeconds;
 
-        private long firstRcvdPacketNumber;
-        private long currentPacketNumber;
+
 
         /// <summary>
         /// Очередь для получения/обработки данных
         /// </summary>
-        private readonly Queue<int> queue;
+        private readonly Queue<byte[]> queue;
 
         /// <summary>
         /// Структура для накопления полученных данных
         /// </summary>
-        public struct TolalData
+        private struct TolalData
         {
-            public long Count;             // Количество полученных значений
-            public long Sum;               // Сумма полученных значений
-            public double Avg;               // Среднее значение
-            public double SquaredDeviation;  // Квадрат отклонения от среднего значения
+            public long FirstRcvdPacketNumber;  // Номер первого полученного пакета
+            public long CurrentPacketNumber;    // Номер текущего пакета
+            public long Count;                  // Количество полученных значений
+            public long Sum;                    // Сумма полученных значений
+            public double Average;                  // Среднее значение
+            public double SquaredDeviation;     // Квадрат отклонения от среднего значения
         }
-        public TolalData totalData;
+        private TolalData totalData;
 
         /// <summary>
         /// Среднее значение всех полученных данных
@@ -45,7 +47,7 @@ namespace UdpClient
             get
             {
                 totalDataMutex.WaitOne();
-                double retVal = totalData.Avg;
+                double retVal = totalData.Average;
                 totalDataMutex.ReleaseMutex();
 
                 return retVal;
@@ -67,21 +69,32 @@ namespace UdpClient
             }
         }
 
+        /// <summary>
+        /// Количество потерянных пакетов
+        /// </summary>
         public long LostPackets
         {
             get
             {
-                long retVal;
-
                 totalDataMutex.WaitOne();
-                retVal = currentPacketNumber - firstRcvdPacketNumber - totalData.Count;
+
+                long retVal;
+                if (totalData.FirstRcvdPacketNumber == 0)
+                {
+                    retVal = 0;
+                }
+                else
+                {
+                    retVal = totalData.CurrentPacketNumber - totalData.FirstRcvdPacketNumber - totalData.Count + 1;
+                    retVal = retVal > 0 ? retVal : 0;
+                }                
+
                 totalDataMutex.ReleaseMutex();
 
                 return retVal;
             }
-            
         }
-            
+
 
         /// <summary>
         /// Конструктор
@@ -97,17 +110,16 @@ namespace UdpClient
             socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership, new MulticastOption(multiCastAddress, IPAddress.Any));
 
             this.delayMilliSeconds = delayMilliSeconds;
-            queue = new Queue<int>();
-
-            firstRcvdPacketNumber = 0;
+            queue = new Queue<byte[]>();
         }
 
         /// <summary>
         /// Прослушивание мультикаст группы, помещение полученных данных в очередь
         /// </summary>
         public void StartListen()
-        {            
+        {
             byte[] buffer = new byte[12];
+            DateTime stamp = DateTime.Now;
 
             while (true)
             {
@@ -115,16 +127,14 @@ namespace UdpClient
                 {
                     socket.Receive(buffer);
 
-                    totalDataMutex.WaitOne();
-                    currentPacketNumber = BitConverter.ToInt64(buffer[0..8]);
-                    if (firstRcvdPacketNumber == 0)
+                    if ( (DateTime.Now - stamp).TotalSeconds > 1)
                     {
-                        firstRcvdPacketNumber = currentPacketNumber;
+                        Thread.Sleep(delayMilliSeconds);
+                        stamp = DateTime.Now;
                     }
-                    totalDataMutex.ReleaseMutex();
 
                     queueMutex.WaitOne();
-                    queue.Enqueue(BitConverter.ToInt32(buffer[8..12]));
+                    queue.Enqueue(buffer);
                     queueMutex.ReleaseMutex();
                 }
                 catch (Exception ex)
@@ -140,24 +150,40 @@ namespace UdpClient
         public void CalcData()
         {
             bool doCalc;
+            int rcvdVal;
             totalData = new TolalData();
 
             while (true)
             {
-                queueMutex.WaitOne();
-                doCalc = queue.TryDequeue(out int val);
-                queueMutex.ReleaseMutex();
-
-                if (doCalc)
+                try
                 {
-                    totalDataMutex.WaitOne();
+                    queueMutex.WaitOne();
+                    doCalc = queue.TryDequeue(out byte[] buffer);
+                    queueMutex.ReleaseMutex();
 
-                    totalData.Sum += val;
-                    totalData.Count++;
-                    totalData.Avg = (double)totalData.Sum / (double)totalData.Count;
-                    totalData.SquaredDeviation += Math.Pow(val - totalData.Avg, 2); // Квадрат отклонения от среднего значения
+                    if (doCalc)
+                    {
+                        totalDataMutex.WaitOne();
 
-                    totalDataMutex.ReleaseMutex();
+                        rcvdVal = BitConverter.ToInt32(buffer[8..12]);
+
+                        totalData.CurrentPacketNumber = BitConverter.ToInt64(buffer[0..8]);
+                        if (totalData.FirstRcvdPacketNumber == 0)
+                        {
+                            totalData.FirstRcvdPacketNumber = totalData.CurrentPacketNumber;
+                        }
+
+                        totalData.Sum += rcvdVal;
+                        totalData.Count++;
+                        totalData.Average = (double)totalData.Sum / (double)totalData.Count;
+                        totalData.SquaredDeviation += Math.Pow(rcvdVal - totalData.Average, 2); // Квадрат отклонения от среднего значения
+
+                        totalDataMutex.ReleaseMutex();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
                 }
             }
         }

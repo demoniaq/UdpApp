@@ -59,12 +59,11 @@ namespace UdpClient
             try
             {
                 delayMilliSeconds = Convert.ToInt32(delayMilliSecondsStr);
-                if (delayMilliSeconds > 1000) throw new ArgumentOutOfRangeException();
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                Console.WriteLine($"Некорректное значение задержки в настройках = '{delayMilliSecondsStr}' (ожидалось значение 0 - 1000)");
+                Console.WriteLine($"Некорректное значение задержки в настройках = '{delayMilliSecondsStr}'");
                 Console.ReadKey();
                 return;
             }

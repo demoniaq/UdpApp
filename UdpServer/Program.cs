@@ -14,6 +14,8 @@ namespace UdpServer
             IConfigurationRoot config;
             IPAddress multiCastAddress;
             MultiCastServer multiCastServer;
+            int rangeStart;
+            int rangeEnd;
             int port;
             byte ttl;
 
@@ -34,14 +36,24 @@ namespace UdpServer
             string portStr = config.GetSection("Port").Value;
             string ttlStr = config.GetSection("TTL").Value;
 
-            double rangeStart = Convert.ToDouble(rangeStartStr);
-            double rangeEnd = Convert.ToDouble(rangeEndStr);
+            try
+            {
+                rangeStart = Convert.ToInt32(rangeStartStr);
+                rangeEnd = Convert.ToInt32(rangeEndStr);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.ReadKey();
+                return;
+            }
+
             if (rangeStart >= rangeEnd)
             {
                 Console.WriteLine($"Некорректный диапазон в настройках: {rangeStartStr} - {rangeEndStr}");
                 Console.ReadKey();
                 return;
-            }            
+            }
 
             try
             {

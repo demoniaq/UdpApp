@@ -14,8 +14,8 @@ namespace UdpServer
     {
         private readonly Socket socket;
         private readonly IPEndPoint remoteEp;
-        private readonly double rangeStart;
-        private readonly double rangeEnd;
+        private readonly int rangeStart;
+        private readonly int rangeEnd;
 
         /// <summary>
         /// Конструктор
@@ -25,7 +25,7 @@ namespace UdpServer
         /// <param name="multiCastAddress"></param>
         /// <param name="port"></param>
         /// <param name="ttl"></param>
-        public MultiCastServer(double rangeStart, double rangeEnd, IPAddress multiCastAddress, int port, byte ttl)
+        public MultiCastServer(int rangeStart, int rangeEnd, IPAddress multiCastAddress, int port, byte ttl)
         {
             try
             {
@@ -50,15 +50,21 @@ namespace UdpServer
         /// </summary>
         public void Start()
         {
+            byte[] numberPacketBytes;
+            byte[] rndValueBytes;
             Random rnd = new Random();
+            long numberOfPacket = 1;
 
             while(true)            
             {
-                byte[] buffer = BitConverter.GetBytes(rangeStart + (rnd.NextDouble() * (rangeEnd - rangeStart)));                
+                numberPacketBytes = BitConverter.GetBytes(numberOfPacket);
+                rndValueBytes = BitConverter.GetBytes(rnd.Next(rangeStart, rangeEnd));
+                byte[] buffer = numberPacketBytes.Concat(rndValueBytes).ToArray();
 
                 try
                 {
                     socket.Send(buffer, buffer.Length, SocketFlags.None);
+                    numberOfPacket++;
                 }
                 catch (Exception ex)
                 {

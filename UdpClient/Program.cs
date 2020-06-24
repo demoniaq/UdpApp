@@ -80,7 +80,7 @@ namespace UdpClient
             {
                 if (Console.ReadKey(true).Key == ConsoleKey.Enter)
                 {
-                    Console.WriteLine($"Среднее = {muliCastClient.Average:f3}, СтандОтклонение = {muliCastClient.StandardDeviation:f3}, Мода = [], Медиана = [], Потеряно пакетов = {muliCastClient.LostPackets}");
+                    Console.WriteLine($"Среднее = {muliCastClient.Average:f3}, СтандОтклонение = {muliCastClient.StandardDeviation:f3}, Мода = {muliCastClient.Moda}, Медиана = {muliCastClient.Mediana}, Потеряно пакетов = {muliCastClient.LostPackets}");
                 }
             }
         }

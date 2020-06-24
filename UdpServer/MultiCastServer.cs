@@ -58,7 +58,7 @@ namespace UdpServer
             while(true)            
             {
                 packetNumbeBytes = BitConverter.GetBytes(packetNumber);
-                rndValueBytes = BitConverter.GetBytes(rnd.Next(rangeStart, rangeEnd));
+                rndValueBytes = BitConverter.GetBytes(rnd.Next(rangeStart, rangeEnd + 1));
                 byte[] buffer = packetNumbeBytes.Concat(rndValueBytes).ToArray();
 
                 try

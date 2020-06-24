@@ -18,8 +18,6 @@ namespace UdpClient
         private readonly Socket socket;
         private readonly int delayMilliSeconds;
 
-
-
         /// <summary>
         /// Очередь для получения/обработки данных
         /// </summary>
@@ -36,6 +34,7 @@ namespace UdpClient
             public long Sum;                    // Сумма полученных значений
             public double Average;                  // Среднее значение
             public double SquaredDeviation;     // Квадрат отклонения от среднего значения
+            public Dictionary<int, long> dictForModa;
         }
         private TolalData totalData;
 
@@ -49,7 +48,6 @@ namespace UdpClient
                 totalDataMutex.WaitOne();
                 double retVal = totalData.Average;
                 totalDataMutex.ReleaseMutex();
-
                 return retVal;
             }
         }
@@ -64,7 +62,36 @@ namespace UdpClient
                 totalDataMutex.WaitOne();
                 double retVal = totalData.Count > 1 ? Math.Sqrt(totalData.SquaredDeviation / (totalData.Count - 1)) : 0;
                 totalDataMutex.ReleaseMutex();
+                return retVal;
+            }
+        }
 
+        /// <summary>
+        /// Мода
+        /// </summary>
+        public int Moda
+        {
+            get
+            {
+                int retVal = 0;
+                totalDataMutex.WaitOne();
+
+                totalDataMutex.ReleaseMutex();
+                return retVal;
+            }
+        }
+
+        /// <summary>
+        /// Медиана
+        /// </summary>
+        public int Mediana
+        {
+            get
+            {
+                int retVal = 0;
+                totalDataMutex.WaitOne();
+
+                totalDataMutex.ReleaseMutex();
                 return retVal;
             }
         }
@@ -77,7 +104,6 @@ namespace UdpClient
             get
             {
                 totalDataMutex.WaitOne();
-
                 long retVal;
                 if (totalData.FirstRcvdPacketNumber == 0)
                 {
@@ -87,10 +113,8 @@ namespace UdpClient
                 {
                     retVal = totalData.CurrentPacketNumber - totalData.FirstRcvdPacketNumber - totalData.Count + 1;
                     retVal = retVal > 0 ? retVal : 0;
-                }                
-
+                }
                 totalDataMutex.ReleaseMutex();
-
                 return retVal;
             }
         }
@@ -127,7 +151,7 @@ namespace UdpClient
                 {
                     socket.Receive(buffer);
 
-                    if ( (DateTime.Now - stamp).TotalSeconds > 1)
+                    if ((DateTime.Now - stamp).TotalSeconds > 1)
                     {
                         Thread.Sleep(delayMilliSeconds);
                         stamp = DateTime.Now;
@@ -152,6 +176,7 @@ namespace UdpClient
             bool doCalc;
             int rcvdVal;
             totalData = new TolalData();
+            totalData.dictForModa = new Dictionary<int, long>();
 
             while (true)
             {
@@ -177,6 +202,17 @@ namespace UdpClient
                         totalData.Count++;
                         totalData.Average = (double)totalData.Sum / (double)totalData.Count;
                         totalData.SquaredDeviation += Math.Pow(rcvdVal - totalData.Average, 2); // Квадрат отклонения от среднего значения
+
+                        // Заполнение словаря для вычислении моды
+                        if (totalData.dictForModa.ContainsKey(rcvdVal))
+                        {
+                            totalData.dictForModa[rcvdVal]++;
+                        }
+                        else
+                        {
+                            totalData.dictForModa.Add(rcvdVal, 1);
+                        }
+
 
                         totalDataMutex.ReleaseMutex();
                     }

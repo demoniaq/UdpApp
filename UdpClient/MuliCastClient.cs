@@ -29,6 +29,7 @@ namespace UdpClient
         {
             public double Count;             // Количество полученных значений
             public double Sum;               // Сумма полученных значений
+            public double Avg;               // Среднее значение
             public double SquaredDeviation;  // Квадрат отклонения от среднего значения
         }
         public TolalData totalData;
@@ -43,7 +44,7 @@ namespace UdpClient
             get
             {
                 totalDataMutex.WaitOne();
-                double retVal = totalData.Count > 0 ? totalData.Sum / totalData.Count : 0;
+                double retVal = totalData.Avg;
                 totalDataMutex.ReleaseMutex();
 
                 return retVal;
@@ -126,7 +127,8 @@ namespace UdpClient
 
                     totalData.Sum += val;
                     totalData.Count++;
-                    totalData.SquaredDeviation += Math.Pow(val - (totalData.Sum / totalData.Count), 2); // Квадрат отклонения от среднего значения
+                    totalData.Avg = totalData.Sum / totalData.Count;
+                    totalData.SquaredDeviation += Math.Pow(val - totalData.Avg, 2); // Квадрат отклонения от среднего значения
 
                     totalDataMutex.ReleaseMutex();
                 }

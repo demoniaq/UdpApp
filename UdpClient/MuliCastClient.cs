@@ -75,7 +75,7 @@ namespace UdpClient
             {
                 int retVal = 0;
                 totalDataMutex.WaitOne();
-
+                retVal = totalData.dictForModa.FirstOrDefault(x => x.Value == totalData.dictForModa.Values.Max()).Key;
                 totalDataMutex.ReleaseMutex();
                 return retVal;
             }
@@ -213,6 +213,8 @@ namespace UdpClient
                             totalData.dictForModa.Add(rcvdVal, 1);
                         }
 
+                        //Dictionary<int, long> dictSortByKey = totalData.dictForModa.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+                        //Dictionary<int, long> dictSortByVal = totalData.dictForModa.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
 
                         totalDataMutex.ReleaseMutex();
                     }

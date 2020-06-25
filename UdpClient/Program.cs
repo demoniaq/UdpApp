@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace UdpClient
 {
@@ -70,7 +71,7 @@ namespace UdpClient
 
             MuliCastClient muliCastClient = new MuliCastClient(multiCastAddress, port, delayMilliSeconds);
             Thread listenThread = new Thread(new ThreadStart(muliCastClient.StartListen));
-            Thread calcThread = new Thread(new ThreadStart(muliCastClient.CalcData));
+            Thread calcThread = new Thread(new ThreadStart(muliCastClient.ProcessingData));
             listenThread.Start();
             calcThread.Start();
 
@@ -80,7 +81,9 @@ namespace UdpClient
             {
                 if (Console.ReadKey(true).Key == ConsoleKey.Enter)
                 {
+                    muliCastClient.CalcStats();
                     Console.WriteLine($"Среднее = {muliCastClient.Average:f3}, СтандОтклонение = {muliCastClient.StandardDeviation:f3}, Мода = {muliCastClient.Moda}, Медиана = {muliCastClient.Mediana:f3}, Потеряно пакетов = {muliCastClient.LostPackets}");
+                    Thread.Sleep(1000); // Задержка, чтобы не спамить поток расчетом статистики
                 }
             }
         }

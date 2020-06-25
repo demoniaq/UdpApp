@@ -31,7 +31,7 @@ namespace UdpServer
             {
                 socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership, new MulticastOption(multiCastAddress));
-                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, ttl); 
+                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, ttl);
 
                 remoteEp = new IPEndPoint(multiCastAddress, port);
                 socket.Connect(remoteEp);
@@ -55,14 +55,14 @@ namespace UdpServer
             Random rnd = new Random();
             long packetNumber = 1;
 
-            while(true)            
+            while (true)
             {
-                packetNumbeBytes = BitConverter.GetBytes(packetNumber);
-                rndValueBytes = BitConverter.GetBytes(rnd.Next(rangeStart, rangeEnd + 1));
-                byte[] buffer = packetNumbeBytes.Concat(rndValueBytes).ToArray();
-
                 try
                 {
+                    packetNumbeBytes = BitConverter.GetBytes(packetNumber);
+                    rndValueBytes = BitConverter.GetBytes(rnd.Next(rangeStart, rangeEnd + 1));
+                    byte[] buffer = packetNumbeBytes.Concat(rndValueBytes).ToArray();
+
                     socket.Send(buffer, buffer.Length, SocketFlags.None);
                     packetNumber++;
                 }

@@ -26,7 +26,7 @@ namespace UdpClient
         /// <summary>
         /// Структура для накопления полученных данных
         /// </summary>
-        private struct TolalData
+        private struct TolalData 
         {
             public long FirstRcvdPacketNumber;          // Номер первого полученного пакета
             public long CurrentPacketNumber;            // Номер текущего пакета
@@ -34,89 +34,65 @@ namespace UdpClient
             public long Sum;                            // Сумма полученных значений
             public double Average;                      // Среднее значение
             public double SquaredDeviation;             // Квадрат отклонения от среднего значения
+            public long MaxKeyCount;                    // Максимальная частота значения в полученной выборке
+            public int Moda;                            // Мода
             public Dictionary<int, long> dictValCount;  // Словарь: значение - количество получений
         }
-        private TolalData totalData;
+        private TolalData totalData; 
+
+        public void CalcStats()
+        {
+            totalDataMutex.WaitOne();
+
+            Average = totalData.Average;
+            StandardDeviation = totalData.Count > 1 ? Math.Sqrt(totalData.SquaredDeviation / (totalData.Count - 1)) : 0;
+            Moda = totalData.Moda;
+
+            Mediana = 0;
+            if (totalData.Count > 0)
+            {
+                Dictionary<int, double> dictFreq = totalData.dictValCount.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => (double)x.Value / (double)totalData.Count);
+                //Dictionary<int, double> dictFreq = totalData.dictValCount.ToDictionary(x => x.Key, x => (double)x.Value / (double)totalData.Count);
+
+            }
+
+            if (totalData.FirstRcvdPacketNumber == 0)
+            {
+                LostPackets = 0;
+            }
+            else
+            {
+                LostPackets = totalData.CurrentPacketNumber - totalData.FirstRcvdPacketNumber - totalData.Count + 1;
+                LostPackets = LostPackets > 0 ? LostPackets : 0;
+            }
+
+            totalDataMutex.ReleaseMutex();
+        }
 
         /// <summary>
         /// Среднее значение всех полученных данных
         /// </summary>
-        public double Average
-        {
-            get
-            {
-                totalDataMutex.WaitOne();
-                double retVal = totalData.Average;
-                totalDataMutex.ReleaseMutex();
-                return retVal;
-            }
-        }
+        public double Average { get; set; }
 
         /// <summary>
         /// Стандартное отклонение
         /// </summary>
-        public double StandardDeviation
-        {
-            get
-            {
-                totalDataMutex.WaitOne();
-                double retVal = totalData.Count > 1 ? Math.Sqrt(totalData.SquaredDeviation / (totalData.Count - 1)) : 0;
-                totalDataMutex.ReleaseMutex();
-                return retVal;
-            }
-        }
+        public double StandardDeviation { get; set; }
 
         /// <summary>
         /// Мода
         /// </summary>
-        public int Moda
-        {
-            get
-            {
-                totalDataMutex.WaitOne();
-                int retVal = totalData.dictValCount.FirstOrDefault(x => x.Value == totalData.dictValCount.Values.Max()).Key;
-                totalDataMutex.ReleaseMutex();
-                return retVal;
-            }
-        }
+        public int Moda { get; set; }
 
         /// <summary>
         /// Медиана
         /// </summary>
-        public double Mediana
-        {
-            get
-            {
-                double retVal = 0;
-                totalDataMutex.WaitOne();
-
-                totalDataMutex.ReleaseMutex();
-                return retVal;
-            }
-        }
+        public double Mediana { get; set; }
 
         /// <summary>
         /// Количество потерянных пакетов
         /// </summary>
-        public long LostPackets
-        {
-            get
-            {
-                totalDataMutex.WaitOne();
-                long retVal;
-                if (totalData.FirstRcvdPacketNumber == 0)
-                {
-                    retVal = 0;
-                }
-                else
-                {
-                    retVal = totalData.CurrentPacketNumber - totalData.FirstRcvdPacketNumber - totalData.Count + 1;
-                    retVal = retVal > 0 ? retVal : 0;
-                }
-                totalDataMutex.ReleaseMutex();
-                return retVal;
-            }
-        }
+        public long LostPackets { get; set; }
 
 
         /// <summary>
@@ -170,7 +146,7 @@ namespace UdpClient
         /// <summary>
         /// Обработка полученных из очереди данных
         /// </summary>
-        public void CalcData()
+        public void ProcessingData()
         {
             bool doCalc;
             int rcvdVal;
@@ -202,8 +178,8 @@ namespace UdpClient
                         totalData.Sum += rcvdVal;
                         totalData.Count++;
                         totalData.Average = (double)totalData.Sum / (double)totalData.Count;
-                        totalData.SquaredDeviation += Math.Pow(rcvdVal - totalData.Average, 2); // Квадрат отклонения от среднего значения
-                                                
+                        totalData.SquaredDeviation += Math.Pow(rcvdVal - totalData.Average, 2); // Квадрат отклонения от среднего значения                                               
+
                         if (totalData.dictValCount.ContainsKey(rcvdVal))
                         {
                             totalData.dictValCount[rcvdVal]++;
@@ -213,8 +189,12 @@ namespace UdpClient
                             totalData.dictValCount.Add(rcvdVal, 1);
                         }
 
-                        //Dictionary<int, long> dictSortByKey = totalData.dictForModa.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
-                        //Dictionary<int, long> dictSortByVal = totalData.dictForModa.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+                        // Вычисление Моды на лету
+                        if (totalData.MaxKeyCount < totalData.dictValCount[rcvdVal])
+                        {
+                            totalData.MaxKeyCount = totalData.dictValCount[rcvdVal];
+                            totalData.Moda = rcvdVal;
+                        }
 
                         totalDataMutex.ReleaseMutex();
                     }

@@ -3,17 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace UdpClient
 {
     internal class MuliCastClient
     {
-        static readonly Mutex queueMutex = new Mutex();
-        static readonly Mutex totalDataMutex = new Mutex();
+        private static readonly Mutex queueMutex = new Mutex();
+        private static readonly Mutex totalDataMutex = new Mutex();
 
         private readonly Socket socket;
         private readonly int delayMilliSeconds;
@@ -26,7 +23,7 @@ namespace UdpClient
         /// <summary>
         /// Структура для накопления полученных данных
         /// </summary>
-        private struct TolalData 
+        private struct TolalData
         {
             public long FirstRcvdPacketNumber;          // Номер первого полученного пакета
             public long CurrentPacketNumber;            // Номер текущего пакета
@@ -38,29 +35,28 @@ namespace UdpClient
             public int Moda;                            // Мода
             public Dictionary<int, long> dictValCount;  // Словарь: значение - количество получений
         }
-        private TolalData totalData; 
+        private TolalData totalData;
 
         public void CalcStats()
         {
             totalDataMutex.WaitOne();
 
-            Average = totalData.Average;
-            StandardDeviation = totalData.Count > 1 ? Math.Sqrt(totalData.SquaredDeviation / (totalData.Count - 1)) : 0;
-            Moda = totalData.Moda;
+            average = totalData.Average;
+            standardDeviation = totalData.Count > 1 ? Math.Sqrt(totalData.SquaredDeviation / (totalData.Count - 1)) : 0;
+            moda = totalData.Moda;
 
-            Mediana = 0;
+            mediana = 0;
             if (totalData.Count > 0)
             {
-                Dictionary<int, double> dictFreq = totalData.dictValCount.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value / (double)totalData.Count);
+                Dictionary<int, long> orderedDictValCount = totalData.dictValCount.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
 
                 double tmpSum = 0;
-                foreach (KeyValuePair<int, double> keyValuePair in dictFreq)
+                foreach (KeyValuePair<int, long> keyValuePair in orderedDictValCount)
                 {
-                    tmpSum += keyValuePair.Value;
-
+                    tmpSum += keyValuePair.Value / (double)totalData.Count;
                     if (tmpSum > 0.5)
                     {
-                        Mediana = keyValuePair.Key;
+                        mediana = keyValuePair.Key;
                         break;
                     }
                 }
@@ -68,41 +64,46 @@ namespace UdpClient
 
             if (totalData.FirstRcvdPacketNumber == 0)
             {
-                LostPackets = 0;
+                lostPackets = 0;
             }
             else
             {
-                LostPackets = totalData.CurrentPacketNumber - totalData.FirstRcvdPacketNumber - totalData.Count + 1;
-                LostPackets = LostPackets > 0 ? LostPackets : 0;
+                lostPackets = totalData.CurrentPacketNumber - totalData.FirstRcvdPacketNumber - totalData.Count + 1;
+                lostPackets = LostPackets > 0 ? LostPackets : 0;
             }
 
             totalDataMutex.ReleaseMutex();
         }
 
+        private double average;
         /// <summary>
         /// Среднее значение всех полученных данных
         /// </summary>
-        public double Average { get; set; }
+        public double Average => average;
 
+        private double standardDeviation;
         /// <summary>
         /// Стандартное отклонение
         /// </summary>
-        public double StandardDeviation { get; set; }
+        public double StandardDeviation => standardDeviation;
 
+        private int moda;
         /// <summary>
         /// Мода
         /// </summary>
-        public int Moda { get; set; }
+        public int Moda => moda;
 
+        private int mediana;
         /// <summary>
         /// Медиана
         /// </summary>
-        public int Mediana { get; set; }
+        public int Mediana => mediana;
 
+        private long lostPackets;
         /// <summary>
         /// Количество потерянных пакетов
         /// </summary>
-        public long LostPackets { get; set; }
+        public long LostPackets => lostPackets;
 
 
         /// <summary>
@@ -187,7 +188,7 @@ namespace UdpClient
 
                         totalData.Sum += rcvdVal;
                         totalData.Count++;
-                        totalData.Average = (double)totalData.Sum / (double)totalData.Count;
+                        totalData.Average = totalData.Sum / (double)totalData.Count;
                         totalData.SquaredDeviation += Math.Pow(rcvdVal - totalData.Average, 2); // Квадрат отклонения от среднего значения                                               
 
                         if (totalData.dictValCount.ContainsKey(rcvdVal))

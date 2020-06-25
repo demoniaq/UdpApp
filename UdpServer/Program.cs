@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace UdpServer
 {
-    class Program
+    internal class Program
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Удалите неиспользуемый параметр", Justification = "<Ожидание>")]
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             IConfigurationRoot config;
             IPAddress multiCastAddress;

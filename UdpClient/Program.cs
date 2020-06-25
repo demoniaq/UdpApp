@@ -2,16 +2,14 @@
 using System;
 using System.IO;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace UdpClient
 {
-    class Program
+    internal class Program
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Удалите неиспользуемый параметр", Justification = "<Ожидание>")]
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             IConfigurationRoot config;
             IPAddress multiCastAddress;
@@ -82,7 +80,7 @@ namespace UdpClient
                 if (Console.ReadKey(true).Key == ConsoleKey.Enter)
                 {
                     muliCastClient.CalcStats();
-                    Console.WriteLine($"Среднее = {muliCastClient.Average:f3}, СтандОтклонение = {muliCastClient.StandardDeviation:f3}, Мода = {muliCastClient.Moda}, Медиана = {muliCastClient.Mediana:f3}, Потеряно пакетов = {muliCastClient.LostPackets}");
+                    Console.WriteLine($"Среднее = {muliCastClient.Average:f3}, СтандОтклонение = {muliCastClient.StandardDeviation:f3}, Мода = {muliCastClient.Moda}, Медиана = {muliCastClient.Mediana}, Потеряно пакетов = {muliCastClient.LostPackets}");
                     Thread.Sleep(1000); // Задержка, чтобы не спамить поток расчетом статистики
                 }
             }

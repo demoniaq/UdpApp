@@ -28,13 +28,13 @@ namespace UdpClient
         /// </summary>
         private struct TolalData
         {
-            public long FirstRcvdPacketNumber;  // Номер первого полученного пакета
-            public long CurrentPacketNumber;    // Номер текущего пакета
-            public long Count;                  // Количество полученных значений
-            public long Sum;                    // Сумма полученных значений
-            public double Average;                  // Среднее значение
-            public double SquaredDeviation;     // Квадрат отклонения от среднего значения
-            public Dictionary<int, long> dictForModa;
+            public long FirstRcvdPacketNumber;          // Номер первого полученного пакета
+            public long CurrentPacketNumber;            // Номер текущего пакета
+            public long Count;                          // Количество полученных значений
+            public long Sum;                            // Сумма полученных значений
+            public double Average;                      // Среднее значение
+            public double SquaredDeviation;             // Квадрат отклонения от среднего значения
+            public Dictionary<int, long> dictValCount;  // Словарь: значение - количество получений
         }
         private TolalData totalData;
 
@@ -73,9 +73,8 @@ namespace UdpClient
         {
             get
             {
-                int retVal = 0;
                 totalDataMutex.WaitOne();
-                retVal = totalData.dictForModa.FirstOrDefault(x => x.Value == totalData.dictForModa.Values.Max()).Key;
+                int retVal = totalData.dictValCount.FirstOrDefault(x => x.Value == totalData.dictValCount.Values.Max()).Key;
                 totalDataMutex.ReleaseMutex();
                 return retVal;
             }
@@ -84,11 +83,11 @@ namespace UdpClient
         /// <summary>
         /// Медиана
         /// </summary>
-        public int Mediana
+        public double Mediana
         {
             get
             {
-                int retVal = 0;
+                double retVal = 0;
                 totalDataMutex.WaitOne();
 
                 totalDataMutex.ReleaseMutex();
@@ -175,8 +174,10 @@ namespace UdpClient
         {
             bool doCalc;
             int rcvdVal;
-            totalData = new TolalData();
-            totalData.dictForModa = new Dictionary<int, long>();
+            totalData = new TolalData
+            {
+                dictValCount = new Dictionary<int, long>()
+            };
 
             while (true)
             {
@@ -202,15 +203,14 @@ namespace UdpClient
                         totalData.Count++;
                         totalData.Average = (double)totalData.Sum / (double)totalData.Count;
                         totalData.SquaredDeviation += Math.Pow(rcvdVal - totalData.Average, 2); // Квадрат отклонения от среднего значения
-
-                        // Заполнение словаря для вычислении моды
-                        if (totalData.dictForModa.ContainsKey(rcvdVal))
+                                                
+                        if (totalData.dictValCount.ContainsKey(rcvdVal))
                         {
-                            totalData.dictForModa[rcvdVal]++;
+                            totalData.dictValCount[rcvdVal]++;
                         }
                         else
                         {
-                            totalData.dictForModa.Add(rcvdVal, 1);
+                            totalData.dictValCount.Add(rcvdVal, 1);
                         }
 
                         //Dictionary<int, long> dictSortByKey = totalData.dictForModa.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);

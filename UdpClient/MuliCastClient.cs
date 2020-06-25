@@ -51,9 +51,19 @@ namespace UdpClient
             Mediana = 0;
             if (totalData.Count > 0)
             {
-                Dictionary<int, double> dictFreq = totalData.dictValCount.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => (double)x.Value / (double)totalData.Count);
-                //Dictionary<int, double> dictFreq = totalData.dictValCount.ToDictionary(x => x.Key, x => (double)x.Value / (double)totalData.Count);
+                Dictionary<int, double> dictFreq = totalData.dictValCount.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value / (double)totalData.Count);
 
+                double tmpSum = 0;
+                foreach (KeyValuePair<int, double> keyValuePair in dictFreq)
+                {
+                    tmpSum += keyValuePair.Value;
+
+                    if (tmpSum > 0.5)
+                    {
+                        Mediana = keyValuePair.Key;
+                        break;
+                    }
+                }
             }
 
             if (totalData.FirstRcvdPacketNumber == 0)
@@ -87,7 +97,7 @@ namespace UdpClient
         /// <summary>
         /// Медиана
         /// </summary>
-        public double Mediana { get; set; }
+        public int Mediana { get; set; }
 
         /// <summary>
         /// Количество потерянных пакетов

@@ -45,7 +45,7 @@ namespace UdpServer
         /// </summary>
         public void Start()
         {
-            byte[] packetNumbeBytes;
+            byte[] packetNumberBytes;
             byte[] rndValueBytes;
             Random rnd = new Random();
             long packetNumber = 1;
@@ -54,9 +54,9 @@ namespace UdpServer
             {
                 try
                 {
-                    packetNumbeBytes = BitConverter.GetBytes(packetNumber);
+                    packetNumberBytes = BitConverter.GetBytes(packetNumber);
                     rndValueBytes = BitConverter.GetBytes(rnd.Next(rangeStart, rangeEnd + 1));
-                    byte[] buffer = packetNumbeBytes.Concat(rndValueBytes).ToArray();
+                    byte[] buffer = packetNumberBytes.Concat(rndValueBytes).ToArray();
 
                     socket.Send(buffer, buffer.Length, SocketFlags.None);
                     packetNumber++;

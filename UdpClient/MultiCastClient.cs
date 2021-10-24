@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace UdpClient
 {
-    internal class MuliCastClient
+    internal class MultiCastClient
     {
         private static readonly Mutex queueMutex = new Mutex();
         private static readonly Mutex totalDataMutex = new Mutex();
@@ -23,7 +23,7 @@ namespace UdpClient
         /// <summary>
         /// Структура для накопления полученных данных
         /// </summary>
-        private struct TolalData
+        private struct TotalData
         {
             public long FirstRcvdPacketNumber;          // Номер первого полученного пакета
             public long CurrentPacketNumber;            // Номер текущего пакета
@@ -35,7 +35,7 @@ namespace UdpClient
             public int Moda;                            // Мода
             public Dictionary<int, long> dictValCount;  // Словарь: значение - количество получений
         }
-        private TolalData totalData;
+        private TotalData totalData;
 
         public void CalcStats()
         {
@@ -112,7 +112,7 @@ namespace UdpClient
         /// <param name="multiCastAddress"></param>
         /// <param name="port"></param>
         /// <param name="delayMilliSeconds"></param>
-        public MuliCastClient(IPAddress multiCastAddress, int port, int delayMilliSeconds)
+        public MultiCastClient(IPAddress multiCastAddress, int port, int delayMilliSeconds)
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             IPEndPoint remoteEp = new IPEndPoint(IPAddress.Any, port);
@@ -161,7 +161,7 @@ namespace UdpClient
         {
             bool doCalc;
             int rcvdVal;
-            totalData = new TolalData
+            totalData = new TotalData
             {
                 dictValCount = new Dictionary<int, long>()
             };
@@ -189,7 +189,7 @@ namespace UdpClient
                         totalData.Sum += rcvdVal;
                         totalData.Count++;
                         totalData.Average = totalData.Sum / (double)totalData.Count;
-                        totalData.SquaredDeviation += Math.Pow(rcvdVal - totalData.Average, 2); // Квадрат отклонения от среднего значения                                               
+                        totalData.SquaredDeviation += Math.Pow(rcvdVal - totalData.Average, 2); // Квадрат отклонения от среднего значения
 
                         if (totalData.dictValCount.ContainsKey(rcvdVal))
                         {
